@@ -1,22 +1,91 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Type Ahead 👀</title>
-  <link rel="stylesheet" href="style.css">
-</head>
-<body>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Type Ahead 👀</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <form class="search-form">
+      <input type="text" class="search" placeholder="City or State" />
+      <ul class="suggestions">
+        <li>Filter for a city</li>
+        <li>or a state</li>
+      </ul>
+    </form>
+    <script>
+      const endpoint =
+        'https://gist.githubusercontent.com/Miserlou/c5cd8364bf9b2420bb29/raw/2bf258763cdddd704f8ffd3ea9a3e81d25e2c6f6/cities.json';
 
-  <form class="search-form">
-    <input type="text" class="search" placeholder="City or State">
-    <ul class="suggestions">
-      <li>Filter for a city</li>
-      <li>or a state</li>
-    </ul>
-  </form>
-<script>
-const endpoint = 'https://gist.githubusercontent.com/Miserlou/c5cd8364bf9b2420bb29/raw/2bf258763cdddd704f8ffd3ea9a3e81d25e2c6f6/cities.json';
+      const cities = [];
 
-</script>
-</body>
+      const searchInput = document.querySelector('.search');
+      const suggestions = document.querySelector('.suggestions');
+
+      //async await style
+      // async function getCityInfo(url) {
+      //   let response = await fetch(url);
+      //   let data = await response.json();
+      //   return data;
+      // }
+      // getCityInfo(endpoint).then(cityInfo => {
+      //   cities.push(...cityInfo);
+      // });
+
+      //.then() promise version
+      fetch(endpoint)
+        .then(response => response.json())
+        .then(cityInfo => cities.push(...cityInfo));
+
+      function findMatches(wordToMatch, cities) {
+        return cities.filter(place => {
+          //creating a regex where g = global (anywhere in the string) and i = insensitive (not case sensitive)
+          const regex = new RegExp(wordToMatch, 'gi');
+          return place.city.match(regex) || place.state.match(regex);
+        });
+      }
+
+      //we need to format the numbers with commas, this function was pulled from stackoverflow
+      function numberWithCommas(num) {
+        return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      }
+
+      function displayMatches() {
+        //this.value is what is inside the text box
+        const matchedArray = findMatches(this.value, cities);
+        //we are now going to turn the data into html
+        const html = matchedArray
+          .map(place => {
+            //we create a regex here to match values in our city array
+            const regex = new RegExp(this.value, 'gi');
+            //we swap out the names of each city and state with a highlighted version for each matching letter
+            const cityName = place.city.replace(
+              regex,
+              `<span class="hl">${this.value}</span>`
+            );
+            const stateName = place.state.replace(
+              regex,
+              `<span class="hl">${this.value}</span>`
+            );
+            //set a variable where we add commas to our num population
+            const populationWithCommas = numberWithCommas(place.population);
+            return `
+          <li>
+          <span class="name">${cityName}, ${stateName}</span>
+          <span class="population">${populationWithCommas}</span>
+          </li>
+          `;
+          })
+          //we need to use .join to remove everything from the array and turn the information into one large string of HTML the browser can process
+          .join('');
+        //we have our suggestions container selected from our query selector, so now we are going to add the HTML we create each time to the suggestions list with innerHTML
+        suggestions.innerHTML = html;
+      }
+
+      //change event only listens when you click off the input box
+      searchInput.addEventListener('change', displayMatches);
+      //we have to add another listener to make sure the function fires when individuals release keys on their keyboard to make this action more seamless
+      searchInput.addEventListener('keyup', displayMatches);
+    </script>
+  </body>
 </html>
